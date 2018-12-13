@@ -1,8 +1,11 @@
+package org.openrndr.tiff
+
 import mil.nga.tiff.TiffReader
 import org.openrndr.draw.*
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+
 
 class Tile(val x: Int, val y: Int, val colorBuffer: ColorBuffer)
 
