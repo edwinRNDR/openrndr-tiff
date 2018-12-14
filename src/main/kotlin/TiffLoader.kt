@@ -13,7 +13,7 @@ fun loadTiffTiles(
     input: File,
     tileWidth: Int, tileHeight: Int,
     overlapWidth: Int = 0, overlapHeight: Int = 0
-): List<Tile> {
+): List<List<Tile>> {
     val image = TiffReader.readTiff(input)
     val directories = image.fileDirectories
 
@@ -23,13 +23,16 @@ fun loadTiffTiles(
     val xTiles = Math.ceil(imageWidth.toDouble() / (tileWidth - 2 * overlapWidth)).toInt()
     val yTiles = Math.ceil(imageHeight.toDouble() / (tileHeight - 2 * overlapHeight)).toInt()
 
-    val tiles = mutableListOf<Tile>()
+    val tiles = mutableListOf(mutableListOf<Tile>())
     val rasters = directories[0].readRasters()
 
     val components = rasters.fieldTypes.size
 
     // this is not the best/fastest way to do it.
     for (y in 0 until yTiles) {
+
+        val row = mutableListOf<Tile>()
+
         for (x in 0 until xTiles) {
             val xOff = (x * (tileWidth - overlapWidth))
             val yOff = (y * (tileHeight - overlapHeight))
@@ -80,13 +83,14 @@ fun loadTiffTiles(
             cb.write(bb)
 
             val tile = Tile(xOff, yOff, cb)
-            tiles.add(tile)
+            row.add(tile)
         }
+        tiles.add(row)
     }
     return tiles
 }
 
-fun loadTiff(file: File): ColorBuffer = loadTiffTiles(file, Int.MAX_VALUE, Int.MAX_VALUE)[0].colorBuffer
+fun loadTiff(file: File): ColorBuffer = loadTiffTiles(file, Int.MAX_VALUE, Int.MAX_VALUE)[0][0].colorBuffer
 //
 //fun main(args: Array<String>) = application {
 //    configure {
