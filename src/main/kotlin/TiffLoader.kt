@@ -1,15 +1,16 @@
 package org.openrndr.tiff
 
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import mil.nga.tiff.TiffReader
 import org.openrndr.draw.*
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-
 class Tile(val x: Int, val y: Int, val colorBuffer: ColorBuffer)
 
-fun loadTiffTiles(
+suspend fun loadTiffTiles(
     input: File,
     tileWidth: Int, tileHeight: Int,
     overlapWidth: Int = 0, overlapHeight: Int = 0
@@ -23,7 +24,7 @@ fun loadTiffTiles(
     val xTiles = Math.ceil(imageWidth.toDouble() / (tileWidth - 2 * overlapWidth)).toInt()
     val yTiles = Math.ceil(imageHeight.toDouble() / (tileHeight - 2 * overlapHeight)).toInt()
 
-    val tiles = mutableListOf(mutableListOf<Tile>())
+    val tiles = mutableListOf<MutableList<Tile>>()
     val rasters = directories[0].readRasters()
 
     val components = rasters.fieldTypes.size
@@ -51,25 +52,25 @@ fun loadTiffTiles(
             bb.rewind()
 
             for (v in 0 until height) {
-                val row = rasters.getPixelRow(yOff + v, ByteOrder.nativeOrder())
+                val pixelRow = rasters.getPixelRow(yOff + v, ByteOrder.nativeOrder())
                 var r = 0
                 var g = 0
                 var b = 0
                 var a = 0
                 for (u in 0 until xOff * components step components) {
-                    r += row[u]
-                    g += row[u + 1]
-                    b += row[u + 2]
+                    r += pixelRow[u]
+                    g += pixelRow[u + 1]
+                    b += pixelRow[u + 2]
                     if (components == 4) {
-                        a += row[u + 3]
+                        a += pixelRow[u + 3]
                     }
                 }
                 for (u in 0 until width * components step components) {
-                    r += row[xOff * components + u]
-                    g += row[xOff * components + u + 1]
-                    b += row[xOff * components + u + 2]
+                    r += pixelRow[xOff * components + u]
+                    g += pixelRow[xOff * components + u + 1]
+                    b += pixelRow[xOff * components + u + 2]
                     if (components == 4) {
-                        a += row[xOff * components + u + 3]
+                        a += pixelRow[xOff * components + u + 3]
                     }
                     bb.put((r and 0xff).toByte())
                     bb.put((g and 0xff).toByte())
@@ -84,38 +85,20 @@ fun loadTiffTiles(
 
             val tile = Tile(xOff, yOff, cb)
             row.add(tile)
+            yield()
         }
         tiles.add(row)
     }
     return tiles
 }
 
-fun loadTiff(file: File): ColorBuffer = loadTiffTiles(file, Int.MAX_VALUE, Int.MAX_VALUE)[0][0].colorBuffer
-//
-//fun main(args: Array<String>) = application {
-//    configure {
-//        width = 1920
-//        height = 1080
-//    }
-//    program {
-//        val tiles = loadTiffTiles(File("data/test-image-001.tif"), 4096, 4096, overlapHeight = 400)
-//        var offset = Vector2.ZERO
-//        mouse.dragged.listen {
-//            offset += it.dragDisplacement
-//        }
-//        extend {
-//            drawer.translate(offset)
-//            tiles.forEach {
-//                drawer.isolated {
-//                    drawer.drawStyle.colorMatrix =
-//                            tint(ColorRGBa.WHITE.opacify(0.5 + 0.5 * Math.cos((it.x + it.y).toDouble())))
-//                    drawer.translate(it.x.toDouble(), it.y.toDouble())
-//                    drawer.image(it.colorBuffer)
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//
-//
+fun loadTiffTilesBlocking(file: File, tileWidth: Int, tileHeight: Int): List<List<Tile>> {
+    return runBlocking { loadTiffTiles(file, tileWidth, tileHeight) }
+}
+
+suspend fun loadTiff(file: File): ColorBuffer = loadTiffTiles(file, Int.MAX_VALUE, Int.MAX_VALUE)[0][0].colorBuffer
+
+
+fun loadTiffBlocking(file: File) : ColorBuffer {
+    return runBlocking { loadTiff(file) }
+}
