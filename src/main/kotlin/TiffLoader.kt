@@ -8,21 +8,26 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class Tile(val x: Int, val y: Int, val colorBuffer: ColorBuffer)
-
 suspend fun loadTiffTiles(
     input: File,
-    tileWidth: Int, tileHeight: Int,
-    overlapWidth: Int = 0, overlapHeight: Int = 0
+    tileWidth: Int, tileHeight: Int
 ): List<List<Tile>> {
     val image = TiffReader.readTiff(input)
     val directories = image.fileDirectories
 
+
+
+    println(directories[0])
+    println("bits per sample ${directories[0].bitsPerSample}")
+    println("photometric interpretation ${directories[0].photometricInterpretation}")
+    println("compresion ${directories[0].compression}")
+    println("planar configuration ${directories[0].planarConfiguration}")
+
     val imageWidth = directories[0].imageWidth.toInt()
     val imageHeight = directories[0].imageHeight.toInt()
 
-    val xTiles = Math.ceil(imageWidth.toDouble() / (tileWidth - 2 * overlapWidth)).toInt()
-    val yTiles = Math.ceil(imageHeight.toDouble() / (tileHeight - 2 * overlapHeight)).toInt()
+    val xTiles = Math.ceil(imageWidth.toDouble() / (tileWidth)).toInt()
+    val yTiles = Math.ceil(imageHeight.toDouble() / (tileHeight)).toInt()
 
     val tiles = mutableListOf<MutableList<Tile>>()
     val rasters = directories[0].readRasters()
@@ -35,8 +40,8 @@ suspend fun loadTiffTiles(
         val row = mutableListOf<Tile>()
 
         for (x in 0 until xTiles) {
-            val xOff = (x * (tileWidth - overlapWidth))
-            val yOff = (y * (tileHeight - overlapHeight))
+            val xOff = (x * (tileWidth))
+            val yOff = (y * (tileHeight))
             val width = Math.min(imageWidth - xOff, tileWidth)
             val height = Math.min(imageHeight - yOff, tileHeight)
 

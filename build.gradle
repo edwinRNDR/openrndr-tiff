@@ -15,7 +15,7 @@ repositories {
 }
 
 ext {
-    openrndr_version = "0.3.30"
+    openrndr_version = "0.3.32-rc3"
 }
 
 dependencies {
